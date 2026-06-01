@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { getStats } from '../services/api';
 import { motion } from 'framer-motion';
 import { FiClock, FiTrash2, FiLink, FiCalendar, FiTrendingUp, FiCheckCircle, FiAlertTriangle, FiShield } from 'react-icons/fi';
 import { FaSkull } from 'react-icons/fa';
@@ -6,6 +8,7 @@ import { getHistory, deleteHistory } from '../services/api';
 
 const HistoryPage = ({ scanHistory, setScanHistory }) => {
   const [filter, setFilter] = useState('all');
+  const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // Load history from backend on mount
@@ -23,7 +26,21 @@ const HistoryPage = ({ scanHistory, setScanHistory }) => {
     };
     fetchHistory();
   }, [setScanHistory]);
-
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const data = await getStats();
+        const formatted = data.map(item => ({
+          name: item._id,
+          count: item.count
+        }));
+        setChartData(formatted);
+      } catch (err) {
+        console.error('Failed to load stats:', err);
+      }
+    };
+    fetchStats();
+  }, []);
   const clearHistory = async () => {
     if (window.confirm('Are you sure you want to clear all scan history?')) {
       try {
@@ -46,7 +63,7 @@ const HistoryPage = ({ scanHistory, setScanHistory }) => {
     if (filter === 'all') return true;
     return item.verdict.toLowerCase() === filter.toLowerCase();
   });
-
+  const COLORS = { Safe: '#10b981', Suspicious: '#f59e0b', Danger: '#ef4444' };
   const stats = {
     total: scanHistory.length,
     safe: scanHistory.filter(s => s.verdict === 'Safe').length,
@@ -119,7 +136,41 @@ const HistoryPage = ({ scanHistory, setScanHistory }) => {
             <span className="history-stat-label">Dangerous</span>
           </div>
         </div>
+	{/* Charts Section */}
+<div style={{ display: 'flex', gap: '2rem', margin: '2rem 0', flexWrap: 'wrap' }}>
+  {/* Bar Chart */}
+  <div style={{ flex: 1, minWidth: '300px', background: 'white', borderRadius: '12px', padding: '1.5rem', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+    <h3 style={{ marginBottom: '1rem' }}>Scan Results Overview</h3>
+    <ResponsiveContainer width="100%" height={250}>
+      <BarChart data={chartData}>
+        <XAxis dataKey="name" />
+        <YAxis />
+        <Tooltip />
+        <Bar dataKey="count">
+          {chartData.map((entry) => (
+            <Cell key={entry.name} fill={COLORS[entry.name] || '#8884d8'} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  </div>
 
+  {/* Pie Chart */}
+  <div style={{ flex: 1, minWidth: '300px', background: 'white', borderRadius: '12px', padding: '1.5rem', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+    <h3 style={{ marginBottom: '1rem' }}>Verdict Distribution</h3>
+    <ResponsiveContainer width="100%" height={250}>
+      <PieChart>
+        <Pie data={chartData} dataKey="count" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+          {chartData.map((entry) => (
+            <Cell key={entry.name} fill={COLORS[entry.name] || '#8884d8'} />
+          ))}
+        </Pie>
+        <Tooltip />
+        <Legend />
+      </PieChart>
+    </ResponsiveContainer>
+  </div>
+</div>
         {/* Controls */}
         <div className="history-controls-pro">
           <div className="filter-buttons-pro">

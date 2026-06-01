@@ -13,7 +13,10 @@ export const getHistory = async () => {
   const response = await axios.get(`${API_BASE_URL}/history`);
   return response.data;
 };
-
+export const getStats = async () => {
+  const response = await axios.get(`${API_BASE_URL}/history/stats`);
+  return response.data;
+};
 export const deleteHistory = async () => {
   const response = await axios.delete(`${API_BASE_URL}/history`);
   return response.data;
